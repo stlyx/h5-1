@@ -1,0 +1,26 @@
+{
+    "name": " ",
+    "version": "0.0.1",
+    "description": "",
+    "keywords": "",
+    "license": "",
+    "author": "",
+    "scripts": {
+        "build": "parcel build index.html",
+        "dev": "parcel index.html --open",
+        "start": "npm run build && npm run dev",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "devDependencies": {
+        "parcel-bundler": "^1.12.4",
+        "dagre-d3": "^0.6.4",
+        "d3": "^6.3.1",
+        "moment": "^2.29.1",
+        "moment-timezone": "^0.5.32",
+        "echarts": "^5.0.0"
+    },
+    "dependencies": {
+        "d3-selection": "^2.0.0",
+        "d3-zoom": "^2.0.0"
+    }
+}
