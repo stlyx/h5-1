@@ -10,9 +10,10 @@ import * as echarts from "echarts";
         });
 
     const data = {
-        nodes: [{id: "1-1", name: "1-1", startTime: 1609669658000, endTime: 1609669660000},
-            {id: "1-2", name: "1-2", startTime: 1609669660000, endTime: 1609669667000},
-            {id: "1-3", name: "1-3", startTime: 1609669667000, endTime: 1609669670000},
+        nodes: [{id: null, parentId: null, name: "All", startTime: 1609669658000, endTime: 1609669670000},
+            {id: "1-1", parentId: null, name: "1-1", startTime: 1609669658000, endTime: 1609669660000},
+            {id: "1-2", parentId: null, name: "1-2", startTime: 1609669660000, endTime: 1609669667000},
+            {id: "1-3", parentId: null, name: "1-3", startTime: 1609669667000, endTime: 1609669670000},
             {id: "2-1", parentId: "1-1", name: "2-1", startTime: 1609669658000, endTime: 1609669659000},
             {id: "2-2", parentId: "1-1", name: "2-2", startTime: 1609669659000, endTime: 1609669660000},
             {id: "2-3", parentId: "1-1", name: "2-3", startTime: 1609669659000, endTime: 1609669660000},
@@ -77,6 +78,15 @@ import * as echarts from "echarts";
         });
     }
 
+    function clipPointsByRect(params, points) {
+        return echarts.graphic.clipPointsByRect(points, {
+            x: params.coordSys.x,
+            y: params.coordSys.y,
+            width: params.coordSys.width,
+            height: params.coordSys.height
+        });
+    }
+
     // 指定图表的配置项和数据
     const option = {
         grid: {show: true},
@@ -96,27 +106,6 @@ import * as echarts from "echarts";
             end: 100,
             zoomOnMouseWheel: false,
             moveOnMouseMove: true
-        }, {
-            type: 'slider',
-            yAxisIndex: 0,
-            zoomLock: true,
-            width: 10,
-            right: 10,
-            top: 70,
-            bottom: 20,
-            maxValueSpan: 10,
-            minValueSpan: 10,
-            handleSize: 0,
-            showDetail: false,
-        }, {
-            type: 'inside',
-            id: 'insideY',
-            yAxisIndex: 0,
-            maxValueSpan: 10,
-            minValueSpan: 10,
-            zoomOnMouseWheel: false,
-            moveOnMouseMove: true,
-            moveOnMouseWheel: true
         }],
         xAxis: {
             type: "time",
@@ -133,14 +122,14 @@ import * as echarts from "echarts";
             id: 'gantt',
             type: 'custom',
             renderItem: (params, api) => {
-                const categoryIndex = api.value(1);
-                const startTime = api.coord([api.value(2), categoryIndex]);
-                const endTime = api.coord([api.value(3), categoryIndex]);
+                const categoryIndex = api.value("id");
+                const startTime = api.coord([api.value("startTime"), categoryIndex]);
+                const endTime = api.coord([api.value("endTime"), categoryIndex]);
                 const barLength = endTime[0] - startTime[0];
                 const barHeight = api.size([0, 1])[1] * 0.8;
                 const x = startTime[0];
                 const y = startTime[1] - barHeight / 2;
-                const duration = (api.value(3) - api.value(2)) + " ms";
+                const duration = (api.value("endTime") - api.value("startTime")) + " ms";
                 const textWidth = echarts.format.getTextRect(duration).width;
                 const rectNormal = clipRectByRect(params,
                     {x: x, y: y, width: barLength, height: barHeight});
@@ -150,6 +139,13 @@ import * as echarts from "echarts";
                         x: x + (textShorter ? 0 : barLength + 5), y: y,
                         width: textShorter ? barLength : textWidth, height: barHeight
                     });
+                const linkShape = api.value('parentId') ? {
+                    points: clipPointsByRect(params, [
+                        api.coord([api.value("startTime", api.value("parentId")), api.value("parentId")]),
+                        api.coord([api.value("startTime", api.value("parentId")), api.value("id")]),
+                        api.coord([api.value("startTime"), api.value("id")])
+                    ])
+                } : null;
                 return {
                     type: "group",
                     children: [{
@@ -167,16 +163,26 @@ import * as echarts from "echarts";
                             text: duration,
                             textFill: textShorter ? '#fff' : '#777'
                         })
+                    }, {
+                        type: 'polyline',
+                        ignore: !linkShape,
+                        shape: linkShape
                     }]
                 }
             },
             encode: {
                 x: ["startTime", "endTime"],
-                y: "id",
-                tooltip: ["name", "startTime", "endTime"]
+                y: ["id", "parentId"],
+                itemId: "id",
+                itemName: "name"
             },
-            datasetIndex: 0
-        }]
+            datasetIndex: 0,
+        }],
+        tooltip: {
+            formatter: function (params) {
+                return params.marker + params.name + ': ' + (params.value['endTime'] - params.value['startTime']) + ' ms';
+            }
+        },
     };
 
     // 使用刚指定的配置项和数据显示图表。
